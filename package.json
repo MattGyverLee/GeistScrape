@@ -1,0 +1,33 @@
+{
+  "name": "GeistScrape",
+  "version": "1.0.0",
+  "description": "",
+  "main": "ExportContent.js",
+  "dependencies": {
+    "core-js": "^2.4.1",
+    "babel-runtime": "^6.25.0",
+    "draft-js": "^0.10.1",
+    "draft-js-export-markdown": "^0.3.0",
+    "draft-js-utils": "^0.2.0",
+    "immutable": "^3.8.1",
+    "lodash": "^4.17.4",
+    "neo4j-driver": "^1.4.0",
+    "react": "^15.6.1",
+    "react-dom": "^15.6.1",
+    "regenerator-runtime": "^0.10.5"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/erros84/GeistScrape.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/erros84/GeistScrape/issues"
+  },
+  "homepage": "https://github.com/erros84/GeistScrape#readme"
+}
