@@ -59,11 +59,11 @@ RETURN n.updated ',
 }
 
 
-function getOne() {
+function getOnePromise() {
     const session = driver.session();
     matchString = 'MATCH (n:Node) \
         WHERE n.editorPlainText <> "" \
-        MATCH (n)-[:IN]->(coll:Collection) \
+        OPTIONAL MATCH (n)-[:IN]->(coll:Collection) \
         RETURN n.name, collect(coll.name), n.editorPlainText, n.editorState \
         LIMIT 1'
     return session
@@ -85,20 +85,29 @@ function getOne() {
 
 function requestAndParse() {
     var memory = new Array
-    if (fs.exists('updated.json')) { 
+    if (fs.existsSync('updated.json')) { 
         memory =JSON.parse(fs.readFileSync('updated.json', 'utf8'));
         memory.filelist.splice(0)
+        var promise = getUserPromiseSince('5957e13005aa7321063ec206', memory.updated);
     } else {
         baseMem = '{"updated": "0", "filelist": [ { "filename": "null", "category": "null" }] }'
         memory = JSON.parse(baseMem)
+        var promise = getUserPromise('5957e13005aa7321063ec206');
     }
-    var promise = getOnePromise();
-    //if (!fs.existsSync('backup')){
-    //        fs.mkdirSync('backup');
-    //    }
+    
+    //var promise = getFullPromise();
     promise.then(function(responses) {
         for (var i = 0, len = responses.records.length; i < len; i++) { 
             
+            var lastUpdate = memory.updated
+            if (lastUpdate > responses.records[i].get("n.created")) {
+                memory.filelist.push({"filename":responses.records[i].get("n.name").substring(0,40),"category":folder});
+                break
+            }
+            if (lastUpdate > responses.records[i].get("n.modified")) {
+                memory.filelist.push({"filename":responses.records[i].get("n.name").substring(0,40),"category":folder});
+                break
+            }
             console.log(i+1)
             console.log(responses.records[i].get("n.name"))
             var fileText = responses.records[i].get("n.editorPlainText")
@@ -158,17 +167,55 @@ hg commit (with .hg folder elsewhere on the server)
                         //console.log(responses.records[0].get("n.name"))
             //console.log(responses.records[0].get("n.editorState"))
 
-function getOnePromise() {
+function getFullPromise() {
     const session = driver.session();
     matchString = 'MATCH (n:Node) \
         WHERE n.editorPlainText <> "" \
         OPTIONAL MATCH (n)-[:IN]->(coll:Collection) \
-        RETURN n.name, collect(coll.name) AS categories, n.editorPlainText, n.editorState \
+        RETURN n.name, collect(coll.name) AS categories, n.editorPlainText, n.editorState, n.modified, n.created \
         LIMIT 100'
     return session
         .run(matchString)
         .catch(error => {
             session.close();
+            //if (_.isEmpty(result.records))
+            //    return console.log("No results found with this criteria.");
+            throw error;
+    });
+};
+
+
+function getUserPromise(userNumber) {
+    const session = driver.session();
+    matchString = 'MATCH (n:Node)<-[:AUTHOR]-(m:User {id:"' + userNumber + '"}) \
+        WHERE n.editorPlainText <> "" \
+        OPTIONAL MATCH (n)-[:IN]->(coll:Collection) \
+        RETURN n.name, collect(coll.name) AS categories, n.editorPlainText, n.editorState, n.modified, n.created \
+        LIMIT 100'
+    return session
+        .run(matchString)
+        .catch(error => {
+            session.close();
+            //if (_.isEmpty(result.records))
+            //    return console.log("No results found with this criteria.");
+            throw error;
+    });
+};
+
+function getUserPromiseSince(userNumber, cutoffdate) {
+    const session = driver.session();
+    matchString = 'MATCH (n:Node)<-[:AUTHOR]-(m:User {id:"' + userNumber + '"}) \
+        WHERE (n.created > cutoffdate) OR (n.modified > cutoffdate)  \
+        WHERE n.editorPlainText <> "" \
+        OPTIONAL MATCH (n)-[:IN]->(coll:Collection) \
+        RETURN n.name, collect(coll.name) AS categories, n.editorPlainText, n.editorState, n.modified, n.created \
+        LIMIT 100'
+    return session
+        .run(matchString)
+        .catch(error => {
+            session.close();
+            //if (_.isEmpty(result.records))
+            //    return console.log("No results found with this criteria.");
             throw error;
     });
 };
@@ -235,7 +282,7 @@ function main() {
  // const record = result.records[0]
   //console.log(matches.records[0])
   //console.log(matches[name]) 
-  return
+  process.exit()
 }
 
 main();
