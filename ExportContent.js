@@ -23,74 +23,71 @@ function requestAndParse(userNum, outputPath, formats) {
         memory = JSON.parse(baseMem)
         var promise = getUserPromise(userNum);
     }
-    
     promise.then(function(responses) {
-        for (var i = 0, len = responses.records.length; i < len; i++) { 
-            
+        for (var i = 0, lenResp = responses.records.length; i < lenResp; i++) { 
             var lastUpdate = memory.updated
-            if (lastUpdate > responses.records[i].get("n.created")) {
-                memory.filelist.push({"filename":responses.records[i].get("n.name").substring(0,40),"category":folder});
-                break
-            }
-            if (lastUpdate > responses.records[i].get("n.modified")) {
-                memory.filelist.push({"filename":responses.records[i].get("n.name").substring(0,40),"category":folder});
-                break
-            }
             console.log(i+1)
             console.log(responses.records[i].get("n.name"))
             var fileText = responses.records[i].get("n.editorPlainText")
             var fileRichText = responses.records[i].get("n.editorState")
             var mdFilename = "/" + responses.records[i].get("n.name") + ".md"
-            ContentState = Draft.convertFromRaw(JSON.parse(fileRichText))
-            
-            //TODO: Break here for Double Categories
-            
+            var txtFilename = "/" + responses.records[i].get("n.name") + ".md"
             var folder = "Inbox"
-            if (responses.records[i].get("categories").length > 0) {
-                folder = responses.records[i].get("categories")[0]
-                if (responses.records[i].get("categories").length > 1) {
-                    console.log("Need to handle multiple categories")
+            switch(responses.records[i].get("categories").length) {
+                case 0: {
+                    folder = "Inbox"
+                    writeFiles(outputPath, folder, fileRichText, mdFilename, fileText, txtFilename, formats)
+                }
+                default: {
+                    for (var c = 0, lenCats = responses.records[i].get("categories").length; c < lenCats; c++) { 
+                        // For Nodes in more than one category, the files will exist in both collections, for ease of navigation.
+                        folder = responses.records[i].get("categories")[c]
+                        writeFiles(outputPath, folder, fileRichText, mdFilename, fileText, txtFilename, formats)
+                    }
                 }
             }
-            var path = outputPath + folder
-            if (!fs.existsSync(path)){
-                fs.mkdirSync(path);
-            }
-            if ((formats == 'markdown') || (formats == 'both')) {
-                var fileMarkDown = markitdown.stateToMarkdown(ContentState) 
-                fs.writeFile(path + mdFilename.substring(0, 40), fileMarkDown, function(err) {
-                if(err) {
-                    return console.log(err);
-                }
-            })
-            }
-            if ((formats == 'text') || (formats == 'both')) {
-                var txtFilename = "/" + responses.records[i].get("n.name") + ".txt"   
-                fs.writeFile(path + txtFilename.substring(0, 40), fileText, function(err) {
-                if(err) {
-                    return console.log(err);
-                }
-            })
-            }  
+        }
+        var timeStamp = new Date()
+        memory.updated = timeStamp.valueOf()
+        fs.writeFileSync(outputPath + 'updated.json', JSON.stringify(memory, null, 2) , 'utf-8');
+        //process.exit()
+        return 
+    })
+};
 
-            // Text output is not needed with Markdown
-            /* var txtFilename = "/" + responses.records[i].get("n.name") + ".txt"   
-            fs.writeFile(path + txtFilename.substring(0, 40), fileText, function(err) {
-                if(err) {
-                    return console.log(err);
-                }
-            }) */
-            // Nothing smart is going on, so I don't need the file list.
-            //memory.filelist.push({"filename":responses.records[i].get("n.name").substring(0,40),"category":folder});
-        };
-    var timeStamp = new Date()
-    memory.updated = timeStamp.valueOf()
-    fs.writeFileSync(outputPath + 'updated.json', JSON.stringify(memory, null, 2) , 'utf-8');
-    //process.exit()
-    return
-})};
- 
 
+function writeFiles(outputPath, folder, fileRichText, mdFilename, fileText, txtFilename, formats) {
+    var path = outputPath + folder
+    if (!fs.existsSync(path)){
+        fs.mkdirSync(path);
+    }
+    if ((formats == 'markdown') || (formats == 'both')) {                    
+        writeMDfile(fileRichText, path, mdFilename)
+    }
+    if ((formats == 'text') || (formats == 'both')) {
+        writeTextFile(fileText, path, txtFilename)
+    }
+};
+
+function writeMDfile(fileRichText, path, mdFilename) {
+        ContentState = Draft.convertFromRaw(JSON.parse(fileRichText))
+        var fileMarkDown = markitdown.stateToMarkdown(ContentState) 
+        fs.writeFile(path + mdFilename.substring(0, 40), fileMarkDown, function(err) {
+        if(err) {
+            return console.log(err);
+        }
+        })
+}
+
+function writeTextFile(fileText, path, mdFilename) {
+    var txtFilename = "/" + responses.records[i].get("n.name") + ".txt"   
+    fs.writeFile(path + txtFilename.substring(0, 40), fileText, function(err) {
+        if(err) {
+            return console.log(err);
+        }
+    }
+    )
+};
 
 // https://coderwall.com/p/kvzbpa/don-t-use-array-foreach-use-for-instead
 
@@ -166,9 +163,8 @@ function getUserPromiseSince(userNumber, cutoffdate) {
 };
 
 function main(userNum,outputPath,formats) {
-  // var folders = [{'User':'Matthew','UID':'5957e13005aa7321063ec206','path':'/home/matt/Dropbox/Krang/backup'}]
   if (!userNum) {
-    userNum = '5957e13005aa7321063ec206'
+    userNum = '598122fd7583ec16ade0d209'
   }
   if (!outputPath) {
     outputPath = 'backup/'
@@ -178,7 +174,6 @@ function main(userNum,outputPath,formats) {
   }
   requestAndParse(userNum,outputPath,formats)
 
-  //process.exit()
-}
+};
 
 main();
