@@ -9,14 +9,17 @@ const password = "test"
 const driver = neo4j.driver(uri, neo4j.auth.basic(user, password));
 const session1 = driver.session()
 
-function requestAndParse(userNum, outputPath) {
+function requestAndParse(userNum, outputPath, formats) {
     var memory = new Array
     if (fs.existsSync(outputPath + 'updated.json')) { 
         memory =JSON.parse(fs.readFileSync(outputPath + 'updated.json', 'utf8'));
-        memory.filelist.splice(0)
+        // Nothing smart is going on, so I don't need the file list.
+        //memory.filelist.splice(0)
         var promise = getUserPromiseSince(userNum, memory.updated);
     } else {
-        baseMem = '{"updated": "0", "filelist": [ { "filename": "null", "category": "null" }] }'
+        //Nothing smart is going on, so I don't need the file list.
+        //baseMem = '{"updated": "0", "filelist": [ { "filename": "null", "category": "null" }] }'
+        baseMem = '{"updated": "0"}'
         memory = JSON.parse(baseMem)
         var promise = getUserPromise(userNum);
     }
@@ -53,13 +56,22 @@ function requestAndParse(userNum, outputPath) {
             if (!fs.existsSync(path)){
                 fs.mkdirSync(path);
             }
-
-            var fileMarkDown = markitdown.stateToMarkdown(ContentState)   
-            fs.writeFile(path + mdFilename.substring(0, 40), fileMarkDown, function(err) {
+            if ((formats == 'markdown') || (formats == 'both')) {
+                var fileMarkDown = markitdown.stateToMarkdown(ContentState) 
+                fs.writeFile(path + mdFilename.substring(0, 40), fileMarkDown, function(err) {
                 if(err) {
                     return console.log(err);
                 }
             })
+            }
+            if ((formats == 'text') || (formats == 'both')) {
+                var txtFilename = "/" + responses.records[i].get("n.name") + ".txt"   
+                fs.writeFile(path + txtFilename.substring(0, 40), fileText, function(err) {
+                if(err) {
+                    return console.log(err);
+                }
+            })
+            }  
 
             // Text output is not needed with Markdown
             /* var txtFilename = "/" + responses.records[i].get("n.name") + ".txt"   
@@ -68,7 +80,8 @@ function requestAndParse(userNum, outputPath) {
                     return console.log(err);
                 }
             }) */
-            memory.filelist.push({"filename":responses.records[i].get("n.name").substring(0,40),"category":folder});
+            // Nothing smart is going on, so I don't need the file list.
+            //memory.filelist.push({"filename":responses.records[i].get("n.name").substring(0,40),"category":folder});
         };
     var timeStamp = new Date()
     memory.updated = timeStamp.valueOf()
@@ -152,15 +165,18 @@ function getUserPromiseSince(userNumber, cutoffdate) {
     });
 };
 
-function main(userNum,outputPath) {
+function main(userNum,outputPath,formats) {
   // var folders = [{'User':'Matthew','UID':'5957e13005aa7321063ec206','path':'/home/matt/Dropbox/Krang/backup'}]
   if (!userNum) {
     userNum = '5957e13005aa7321063ec206'
   }
   if (!outputPath) {
-      outputPath = 'backup/'
+    outputPath = 'backup/'
   }
-  requestAndParse(userNum,outputPath)
+  if (!formats) {
+    formats = 'markdown'
+  }
+  requestAndParse(userNum,outputPath,formats)
 
   //process.exit()
 }
