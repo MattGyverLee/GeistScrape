@@ -3,9 +3,12 @@ var _ = require('lodash');
 var Draft = require('draft-js')
 var markitdown = require('draft-js-export-markdown')
 var fs = require('fs');
-const uri = "bolt://localhost:7687"
+const uri = "bolt://127.0.0.1:7687"
 const user = "neo4j"
 const password = "test"
+const DefUserNum = "123456789"
+const DefBackupFolder = "backup/"
+const DefFormat = "markdown" //Options: markdown, text, or both 
 const driver = neo4j.driver(uri, neo4j.auth.basic(user, password));
 const session1 = driver.session()
 
@@ -164,10 +167,10 @@ function getUserPromiseSince(userNumber, cutoffdate) {
 
 function main(userNum,outputPath,formats) {
   if (!userNum) {
-    userNum = '598122fd7583ec16ade0d209'
+    userNum = DefUserNum
   }
   if (!outputPath) {
-    outputPath = 'backup/'
+    outputPath = DefBackupFolder
   }
   if (!formats) {
     formats = 'markdown'
