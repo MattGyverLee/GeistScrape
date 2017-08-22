@@ -173,7 +173,7 @@ function main(userNum,outputPath,formats) {
     outputPath = DefBackupFolder
   }
   if (!formats) {
-    formats = 'markdown'
+    formats = DefFormat
   }
   requestAndParse(userNum,outputPath,formats)
 
